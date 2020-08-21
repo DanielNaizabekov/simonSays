@@ -10,9 +10,11 @@
       />
     </div>
 
-    <div class="game-controls">
+    <div class="game-controls" :class="{disabled: isGameStarted}">
       <h3>Round: {{round}}</h3>
-      <button class="btn" @click="startGame">Start</button>
+      <button class="btn" @click="startRound">Start</button>
+
+      <h5 v-show="losingRound">Losing round: {{ losingRound }}</h5>
 
       <h3 class="game-level-title">Game level:</h3>
       <div class="game-options">
@@ -51,11 +53,13 @@ export default {
     return {
       tiles,
       levels,
-      round: 3,
+      round: 0,
       level: 'normal',
       activeTileId: null,
       randomTileIndexes: [],
       isTilesDisabled: true,
+      isGameStarted: false,
+      losingRound: '',
     }
   },
   computed: {
@@ -78,7 +82,7 @@ export default {
   methods: {
     getRandomTileIndexes() {
       let indexes = []
-      for(let i = 0; i <= this.round; i++) {
+      for(let i = 0; i < this.round; i++) {
         indexes.push( Math.floor((Math.random() * this.tiles.length)) )
       }
       return indexes
@@ -97,17 +101,34 @@ export default {
       }
       highlightTilesQueue.call(this)
     },
-    startGame() {
+    startRound() {
+      this.isGameStarted = true
+      this.losingRound = ''
+      this.round++
       this.randomTileIndexes = this.getRandomTileIndexes()
       this.highlightTiles()
     },
     onTileClick(id) {
       if(this.isTilesDisabled) return
 
-      const outmostRandomTileIndex = this.randomTileIndexes.splice(0, 1)
-      if(id !== this.tiles[outmostRandomTileIndex].id) return alert('You lose')
-      if(!this.randomTileIndexes.length) return alert('You win')
-      this.activeTileId = id
+      const outmostTileIndex = this.randomTileIndexes.splice(0, 1)
+      if(id !== this.tiles[outmostTileIndex].id) {
+        alert('You lost')
+        this.reset()
+      } else if(!this.randomTileIndexes.length) {
+        this.activeTileId = id
+        setTimeout(() => this.startRound(), 500)
+      } else {
+        this.activeTileId = id
+      }
+    },
+    reset() {
+      this.losingRound = this.round
+      this.round = 0
+      this.level = 'normal'
+      this.randomTileIndexes = []
+      this.isTilesDisabled = true
+      this.isGameStarted = false
     },
   },
 }
@@ -159,6 +180,8 @@ export default {
 
 .game-controls
   margin-left: 50px
+  &.disabled
+    pointer-events: none
 
 .game-level-title
   margin: 30px 0 5px 0
